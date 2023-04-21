@@ -1,7 +1,7 @@
 
 
 /*
-This a fixed-point representation of numbers
+This is a fixed-point representation of numbers
 32 bits are split into to parts:
 The integer part is the higher-order 17 bits. 
 The fraction part is the lower order 14 bits.
