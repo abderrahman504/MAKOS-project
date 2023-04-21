@@ -20,6 +20,8 @@
 /* Number of timer ticks since OS booted. */
 static int64_t ticks;
 
+struct list sleep_list;
+
 /* Number of loops per timer tick.
    Initialized by timer_calibrate(). */
 static unsigned loops_per_tick;
@@ -37,6 +39,8 @@ timer_init (void)
 {
   pit_configure_channel (0, 2, TIMER_FREQ);
   intr_register_ext (0x20, timer_interrupt, "8254 Timer");
+  
+  list_init(&sleep_list);
 }
 
 /* Calibrates loops_per_tick, used to implement brief delays. */
@@ -86,14 +90,37 @@ timer_elapsed (int64_t then)
 
 /* Sleeps for approximately TICKS timer ticks.  Interrupts must
    be turned on. */
+
+// Comparison function for sorting threads by priority
+static bool less(const struct list_elem* a,
+                             const struct list_elem* b,
+                             void* aux) {
+    struct thread* thread_a = list_entry(a, struct thread, elem);
+    struct thread* thread_b = list_entry(b, struct thread, elem);
+    return thread_a->wait_time < thread_b->wait_time;
+}
+
 void
 timer_sleep (int64_t ticks) 
 {
   int64_t start = timer_ticks ();
 
   ASSERT (intr_get_level () == INTR_ON);
-  while (timer_elapsed (start) < ticks) 
+  /*while (timer_elapsed (start) < ticks) 
     thread_yield ();
+    */
+  enum intr_level old_level;
+  old_level = intr_disable ();
+  struct thread *cur = thread_current ();
+  cur->wait_time = start + ticks;
+  list_push_front (&sleep_list, &(cur->elem));
+  if (!list_empty(&sleep_list)) {
+    list_sort(&sleep_list, less, NULL);
+  }
+
+  thread_block();
+
+  intr_set_level (old_level);
 }
 
 /* Sleeps for approximately MS milliseconds.  Interrupts must be
@@ -172,6 +199,22 @@ timer_interrupt (struct intr_frame *args UNUSED)
 {
   ticks++;
   thread_tick ();
+  
+  int flag = 0;
+  for(size_t i=0; i< list_size(&sleep_list); i++){
+    struct thread* t = list_entry(list_front(&sleep_list), struct thread, elem);
+    if(t->wait_time < ticks){
+      t->wait_time = 0;
+      list_pop_front(&sleep_list);
+      thread_unblock(t);
+      flag = 1;
+    }else{
+      break;
+    }
+  }
+  if(flag == 1){
+    intr_yield_on_return();
+  }
 }
 
 /* Returns true if LOOPS iterations waits for more than one timer
