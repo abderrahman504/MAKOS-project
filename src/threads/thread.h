@@ -89,6 +89,12 @@ struct thread
     uint8_t *stack;                     /* Saved stack pointer. */
     int priority;                       /* Priority. */
     struct list_elem allelem;           /* List element for all threads list. */
+    int nice;                           /* Nice value */
+    real cpu_recent;                    /* Recent CPU value */
+    int64_t wakeupTime;                 /* Wakeup Time */
+    int base_priority;                  /* Base priority */
+    struct list locks_held;
+    struct lock *lock_waiting;
 
     /*------------------------Updated---------------------*/
     int wait_time;                      /* Number of ticks to wake up.*/
@@ -109,6 +115,9 @@ struct thread
    If true, use multi-level feedback queue scheduler.
    Controlled by kernel command-line option "-o mlfqs". */
 extern bool thread_mlfqs;
+
+real load_avg;
+size_t get_ready_list_size();         /* Returns the size of the ready list (Threads Waiting) */
 
 void thread_init (void);
 void thread_start (void);

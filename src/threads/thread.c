@@ -92,12 +92,19 @@ thread_init (void)
   lock_init (&tid_lock);
   list_init (&ready_list);
   list_init (&all_list);
-
   /* Set up a thread structure for the running thread. */
   initial_thread = running_thread ();
+  initial_thread->nice = 0;
+  initial_thread->cpu_recent = int_to_real(0);
   init_thread (initial_thread, "main", PRI_DEFAULT);
   initial_thread->status = THREAD_RUNNING;
   initial_thread->tid = allocate_tid ();
+  initial_thread->wakeupTime = 0;
+}
+
+
+size_t get_ready_list_size(){
+  return list_size(&ready_list) + 1;
 }
 
 /* Starts preemptive thread scheduling by enabling interrupts.
@@ -109,6 +116,7 @@ thread_start (void)
   struct semaphore idle_started;
   sema_init (&idle_started, 0);
   thread_create ("idle", PRI_MIN, idle, &idle_started);
+  load_avg = int_to_real(0);
 
   /* Start preemptive thread scheduling. */
   intr_enable ();
@@ -181,6 +189,8 @@ thread_create (const char *name, int priority,
 
   /* Initialize thread. */
   init_thread (t, name, priority);
+  t->nice = thread_get_nice();
+  t->cpu_recent = thread_current()->cpu_recent;
   tid = t->tid = allocate_tid ();
 
   /* Stack frame for kernel_thread(). */
@@ -335,7 +345,13 @@ thread_foreach (thread_action_func *func, void *aux)
 void
 thread_set_priority (int new_priority) 
 {
+  enum intr_level previous_level = intr_disable();
+  int temp = thread_current()->priority;
   thread_current ()->priority = new_priority;
+  if (new_priority < temp){
+    thread_yield();
+  }
+  intr_set_level(previous_level);
 }
 
 /* Returns the current thread's priority. */
@@ -349,21 +365,27 @@ thread_get_priority (void)
 void
 thread_set_nice (int nice UNUSED) 
 {
-  /* Not yet implemented. */
+  // DEMO: STILL NEED TO IMPLEMENT
+  enum intr_level previous_level = intr_disable();
+  struct thread *t_current = thread_current();
+  t_current->nice = nice;
+  real new_priority = PRI_MAX - (t_current->recent_cpu / 4) - (nice * 2); // FIX: USE FIXED POINT OPERATIONS HERE
+  thread_set_priority(new_priority); // FIX: USE INT PART OF REAL
+  intr_set_level(old_level);
 }
 
 /* Returns the current thread's nice value. */
 int
 thread_get_nice (void) 
 {
-  /* Not yet implemented. */
-  return 0;
+  return thread_current()->nice;
 }
 
 /* Returns 100 times the system load average. */
 int
 thread_get_load_avg (void) 
 {
+  // FIX: RETURN FLOAT_POINT ROUND OF FLOAT_POINT MULTIPLY load_avg BY 100
   /* Not yet implemented. */
   return 0;
 }
@@ -372,6 +394,7 @@ thread_get_load_avg (void)
 int
 thread_get_recent_cpu (void) 
 {
+  // FIX: RETURN FLOAT_POINT ROUND OF FLOAT_POINT MULTIPLY cpu_recent BY 100
   /* Not yet implemented. */
   return 0;
 }
@@ -462,6 +485,9 @@ init_thread (struct thread *t, const char *name, int priority)
   strlcpy (t->name, name, sizeof t->name);
   t->stack = (uint8_t *) t + PGSIZE;
   t->priority = priority;
+  t->base_priority = priority;
+  t->lock_waiting = NULL;
+  list_init(&t->locks_held);
   t->magic = THREAD_MAGIC;
 
   old_level = intr_disable ();
@@ -492,9 +518,22 @@ next_thread_to_run (void)
 {
   if (list_empty (&ready_list))
     return idle_thread;
-  else
-    return list_entry (list_pop_front (&ready_list), struct thread, elem);
+  else {
+    struct list_elem* e;
+    struct thread* t;
+    e = list_max(&ready_list, list_priority_comp, NULL);
+    next_thread = list_entry(e, struct thread, elem);
+    list_remove(e);
+    return next_thread;
+    // return list_entry (list_pop_front (&ready_list), struct thread, elem);
+  }
 }
+
+// (ADDED BY EMBABY) TASK: thread_add_lock (struct lock *lock)
+// (ADDED BY EMBABY) TASK: thread_remove_lock (struct lock *lock)
+// (ADDED BY EMBABY) TASK: thread_donate_priority (struct thread *t)
+// (ADDED BY EMBABY) TASK: thread_update_priority (struct thread *t)
+
 
 /* Completes a thread switch by activating the new thread's page
    tables, and, if the previous thread is dying, destroying it.
@@ -578,7 +617,7 @@ allocate_tid (void)
 
   return tid;
 }
-
+
 /* Offset of `stack' member within `struct thread'.
    Used by switch.S, which can't figure it out on its own. */
 uint32_t thread_stack_ofs = offsetof (struct thread, stack);
