@@ -180,6 +180,10 @@ thread_create (const char *name, int priority,
   struct switch_threads_frame *sf;
   tid_t tid;
 
+  if (thread_mlfqs){
+    priority = PRI_DEFAULT; 
+  }
+
   ASSERT (function != NULL);
 
   /* Allocate thread. */
@@ -345,6 +349,7 @@ thread_foreach (thread_action_func *func, void *aux)
 void
 thread_set_priority (int new_priority) 
 {
+  if (thread_mlfqs) return; // don't change priority if in MLFQS mode
   enum intr_level previous_level = intr_disable();
   int temp = thread_current()->priority;
   thread_current ()->priority = new_priority;
