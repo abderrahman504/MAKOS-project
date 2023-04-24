@@ -11,6 +11,7 @@
 #include "threads/switch.h"
 #include "threads/synch.h"
 #include "threads/vaddr.h"
+#include "threads/fixed-point.h"
 #ifdef USERPROG
 #include "userprog/process.h"
 #endif
@@ -374,7 +375,7 @@ thread_set_nice (int nice UNUSED)
   enum intr_level previous_level = intr_disable();
   struct thread *t_current = thread_current();
   t_current->nice = nice;
-  real new_priority = PRI_MAX - (t_current->recent_cpu / 4) - (nice * 2); // FIX: USE FIXED POINT OPERATIONS HERE
+  real new_priority = PRI_MAX - (t_current->cpu_recent / 4) - (nice * 2); // FIX: USE FIXED POINT OPERATIONS HERE
   thread_set_priority(new_priority); // FIX: USE INT PART OF REAL
   intr_set_level(old_level);
 }
@@ -491,6 +492,10 @@ init_thread (struct thread *t, const char *name, int priority)
   t->stack = (uint8_t *) t + PGSIZE;
   t->priority = priority;
   t->base_priority = priority;
+  /*------------------Update-----------------------*/
+  t->priorities[0]=priority;
+  t->priorities_size=1;
+  t->number_of_donations=0;
   t->lock_waiting = NULL;
   list_init(&t->locks_held);
   t->magic = THREAD_MAGIC;
@@ -526,8 +531,8 @@ next_thread_to_run (void)
   else {
     struct list_elem* e;
     struct thread* t;
-    e = list_max(&ready_list, list_priority_comp, NULL);
-    next_thread = list_entry(e, struct thread, elem);
+    e = list_max(&ready_list, compare_priorities, NULL);
+    struct thread *next_thread = list_entry(e, struct thread, elem);
     list_remove(e);
     return next_thread;
     // return list_entry (list_pop_front (&ready_list), struct thread, elem);
@@ -626,3 +631,34 @@ allocate_tid (void)
 /* Offset of `stack' member within `struct thread'.
    Used by switch.S, which can't figure it out on its own. */
 uint32_t thread_stack_ofs = offsetof (struct thread, stack);
+
+/*------------------------Updated---------------------*/
+bool compare_priorities(struct list_elem *l1,struct list_elem *l2,void *aux){
+    struct thread *t1 = list_entry(l1,struct thread,elem);
+    struct thread *t2 = list_entry(l2,struct thread,elem);
+    if(t1->priority > t2->priority){
+        return true;
+    }
+    return false;
+}
+
+void search_priority_list(struct thread *t,int elem)
+{ int found=0;
+    for(int i=0;i<(t->priorities_size)-1;i++)
+    {
+        if(t->priorities[i]==elem)
+        {
+            found=1;
+        }
+        if(found==1)
+        {
+            t->priorities[i]=t->priorities[i+1];
+        }
+    }
+    t->priorities_size -=1;
+}
+
+void sort_ready_list(void)
+{
+    list_sort(&ready_list, compare_priorities, 0);
+}
