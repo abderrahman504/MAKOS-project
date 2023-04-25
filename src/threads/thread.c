@@ -251,7 +251,7 @@ thread_unblock (struct thread *t)
 
   old_level = intr_disable ();
   ASSERT (t->status == THREAD_BLOCKED);
-  list_push_back (&ready_list, &t->elem);
+  list_insert_ordered (&ready_list, &t->elem, compare_priorities, NULL);
   t->status = THREAD_READY;
   intr_set_level (old_level);
 }
@@ -322,8 +322,9 @@ thread_yield (void)
 
   old_level = intr_disable ();
   if (cur != idle_thread) 
-    list_push_back (&ready_list, &cur->elem);
+    list_insert_ordered(&ready_list, &cur->elem, compare_priorities, NULL);
   cur->status = THREAD_READY;
+	struct thread* t = list_entry(list_front(&ready_list), struct thread, elem);
   schedule ();
   intr_set_level (old_level);
 }
@@ -353,6 +354,7 @@ thread_set_priority (int new_priority)
   enum intr_level previous_level = intr_disable();
   int temp = thread_current()->priority;
   thread_current ()->priority = new_priority;
+	//No need to sort ready_list because this thread will get reinserted into it inside thread_yield() at the correct index
   if (new_priority < temp){
     thread_yield();
   }
@@ -635,10 +637,8 @@ uint32_t thread_stack_ofs = offsetof (struct thread, stack);
 bool compare_priorities(struct list_elem *l1,struct list_elem *l2,void *aux){
     struct thread *t1 = list_entry(l1,struct thread,elem);
     struct thread *t2 = list_entry(l2,struct thread,elem);
-    if(t1->priority > t2->priority){
-        return true;
-    }
-    return false;
+    
+    return t1->priority < t2->priority;
 }
 
 void search_priority_list(struct thread *t,int elem)
@@ -659,5 +659,5 @@ void search_priority_list(struct thread *t,int elem)
 
 void sort_ready_list(void)
 {
-    list_sort(&ready_list, compare_priorities, 0);
+    list_sort(&ready_list, compare_priorities, NULL);
 }
