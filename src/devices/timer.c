@@ -113,10 +113,11 @@ timer_sleep (int64_t ticks)
   old_level = intr_disable ();
   struct thread *cur = thread_current ();
   cur->wait_time = start + ticks;
-  list_push_front (&sleep_list, &(cur->elem));
-  if (!list_empty(&sleep_list)) {
-    list_sort(&sleep_list, less, NULL);
-  }
+  list_insert_ordered(&sleep_list, &(cur->elem), less, NULL);
+//   list_push_front (&sleep_list, &(cur->elem));
+//   if (!list_empty(&sleep_list)) {
+//     list_sort(&sleep_list, less, NULL);
+//   }
 
   thread_block();
 

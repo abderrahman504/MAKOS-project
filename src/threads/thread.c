@@ -100,7 +100,7 @@ thread_init (void)
   init_thread (initial_thread, "main", PRI_DEFAULT);
   initial_thread->status = THREAD_RUNNING;
   initial_thread->tid = allocate_tid ();
-  initial_thread->wakeupTime = 0;
+  initial_thread->wait_time = 0;
 }
 
 
@@ -117,7 +117,6 @@ thread_start (void)
   struct semaphore idle_started;
   sema_init (&idle_started, 0);
   thread_create ("idle", PRI_MIN, idle, &idle_started);
-  load_avg = int_to_real(0);
 
   /* Start preemptive thread scheduling. */
   intr_enable ();
@@ -377,7 +376,7 @@ thread_set_nice (int nice UNUSED)
   t_current->nice = nice;
   real new_priority = PRI_MAX - (t_current->cpu_recent / 4) - (nice * 2); // FIX: USE FIXED POINT OPERATIONS HERE
   thread_set_priority(new_priority); // FIX: USE INT PART OF REAL
-  intr_set_level(old_level);
+  intr_set_level(previous_level);
 }
 
 /* Returns the current thread's nice value. */
