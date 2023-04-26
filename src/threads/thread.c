@@ -219,6 +219,7 @@ thread_create (const char *name, int priority,
 
   /* Add to run queue. */
   thread_unblock (t);
+  thread_yield();
 
   return tid;
 }
@@ -354,15 +355,25 @@ thread_foreach (thread_action_func *func, void *aux)
 void
 thread_set_priority (int new_priority) 
 {
-  if (thread_mlfqs) return; // don't change priority if in MLFQS mode
-  enum intr_level previous_level = intr_disable();
-  int temp = thread_current()->priority;
-  thread_current ()->priority = new_priority;
-	//No need to sort ready_list because this thread will get reinserted into it inside thread_yield() at the correct index
-  if (new_priority < temp){
-    thread_yield();
-  }
-  intr_set_level(previous_level);
+//  if (thread_mlfqs) return; // don't change priority if in MLFQS mode
+//  enum intr_level previous_level = intr_disable();
+//  int temp = thread_current()->priority;
+//  thread_current ()->priority = new_priority;
+//	//No need to sort ready_list because this thread will get reinserted into it inside thread_yield() at the correct index
+//  if (new_priority < temp){
+//    thread_yield();
+//  }
+//  intr_set_level(previous_level);
+    if (thread_mlfqs) return; // don't change priority if in MLFQS mode
+    enum intr_level previous_level = intr_disable();
+    thread_current()->priorities[0] = new_priority;
+    //No need to sort ready_list because this thread will get reinserted into it inside thread_yield() at the correct index
+    if(thread_current()->priorities_size==1)
+    {
+        thread_current ()->priority = new_priority;
+        thread_yield();
+    }
+    intr_set_level(previous_level);
 }
 
 /* Returns the current thread's priority. */
