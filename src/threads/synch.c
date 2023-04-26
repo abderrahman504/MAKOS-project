@@ -119,7 +119,7 @@ sema_up (struct semaphore *sema)
       /*-------------------------Update------------------------*/
       list_sort(&sema->waiters,compare_priorities,0);
       /*-------------------------------------------------------*/
-      thread_unblock(list_entry(list_pop_back(&sema->waiters),
+      thread_unblock(list_entry(list_pop_front(&sema->waiters),
       struct thread, elem));
   }
   sema->value++;

@@ -324,6 +324,7 @@ void mlfqs_recalculate()
 		// printf("Updating priorities\n");
 		//update all priorities
 		mlfqs_update_priorities();
+        sort_ready_list();
 	}
 
 
