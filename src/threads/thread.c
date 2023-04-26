@@ -387,11 +387,16 @@ thread_get_priority (void)
 void
 thread_set_nice (int nice) 
 {
-  // DEMO: STILL NEED TO IMPLEMENT
   enum intr_level previous_level = intr_disable();
   struct thread *t_current = thread_current();
   t_current->nice = nice;
+	int old_prio = t_current->priority;
+	compute_priority(t_current);
   intr_set_level(previous_level);
+	if (old_prio > t_current->priority)
+	{
+		thread_yield();
+	}
 }
 
 /* Returns the current thread's nice value. */
