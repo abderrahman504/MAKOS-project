@@ -98,7 +98,7 @@ struct thread
     /*------------------------Updated---------------------*/
     int wait_time;                      /* Number of ticks to wake up.*/
     /*------------------------Updated_For_Donations---------------------*/
-    int priorities[9];                  /* List for all donated priorities */
+    int priorities[20];                  /* List for all donated priorities */
     int priorities_size;                /* Size of donated priority list */
     int number_of_donations;             /* Number of locks that thread donated for */
     struct lock *lock_waiting;           /* The lock which the thread blocked for */
