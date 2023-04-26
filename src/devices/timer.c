@@ -109,16 +109,10 @@ timer_sleep (int64_t ticks)
   /*while (timer_elapsed (start) < ticks) 
     thread_yield ();
     */
-  enum intr_level old_level;
-  old_level = intr_disable ();
+  enum intr_level old_level = intr_disable ();
   struct thread *cur = thread_current ();
   cur->wait_time = start + ticks;
   list_insert_ordered(&sleep_list, &(cur->elem), less, NULL);
-//   list_push_front (&sleep_list, &(cur->elem));
-//   if (!list_empty(&sleep_list)) {
-//     list_sort(&sleep_list, less, NULL);
-//   }
-
   thread_block();
 
   intr_set_level (old_level);
@@ -202,9 +196,9 @@ timer_interrupt (struct intr_frame *args UNUSED)
   thread_tick ();
   if (thread_mlfqs) mlfqs_recalculate();
   int flag = 0;
-  for(size_t i=0; i< list_size(&sleep_list); i++){
+  while(!list_empty(&sleep_list)){
     struct thread* t = list_entry(list_front(&sleep_list), struct thread, elem);
-    if(t->wait_time < ticks){
+    if(t->wait_time <= ticks){
       t->wait_time = 0;
       list_pop_front(&sleep_list);
       thread_unblock(t);
