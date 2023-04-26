@@ -200,7 +200,7 @@ timer_interrupt (struct intr_frame *args UNUSED)
 {
   ticks++;
   thread_tick ();
-  
+  if (thread_mlfqs) mlfqs_recalculate();
   int flag = 0;
   for(size_t i=0; i< list_size(&sleep_list); i++){
     struct thread* t = list_entry(list_front(&sleep_list), struct thread, elem);
@@ -287,4 +287,51 @@ real_time_delay (int64_t num, int32_t denom)
      the possibility of overflow. */
   ASSERT (denom % 1000 == 0);
   busy_wait (loops_per_tick * num / 1000 * TIMER_FREQ / (denom / 1000)); 
+}
+
+
+void mlfqs_recalculate()
+{
+	struct thread* cur = thread_current();
+	cur->recent_cpu = real_add(cur->recent_cpu, 1);
+
+	// printf("Recalculations now\n");
+
+	if (timer_ticks() % TIMER_FREQ == 0)
+	{
+		//calculating load_avg
+		// printf("About to do a, b division\n");
+		real load_avg = get_load_avg();
+		real a = real_divide(int_to_real(59), int_to_real(60));
+		real b = real_divide(int_to_real(1), int_to_real(60));
+		// printf("Passed a, b division\n");
+		int readyThreads = get_ready_list_size();
+		// printf("a = %d, b = %d, readyThread = %d\n", a, b, readyThreads);
+		a = real_multiply(load_avg, a);
+		b = real_multiply(b, int_to_real(readyThreads));
+		// printf("a = %d, b = %d\n", a, b);
+		load_avg = 	real_add(a, b);
+		set_load_avg(load_avg);
+		printf("load_avg = %d\n", load_avg);
+		printf("int load_avg = %d\n", thread_get_load_avg());
+		//calculating recent_cpu
+		real x,y;
+		x = real_multiply(int_to_real(2), load_avg);
+		y = real_add(x, int_to_real(1));
+		// printf("load_avg = %d\n", real_to_int(load_avg));
+		// printf("About to do x/y. x = %d, y =%d\n", real_to_int(x), real_to_int(y));
+		real coeff = real_divide(x, y);
+		// printf("Passed x/y\n");
+		cur -> recent_cpu = real_multiply(coeff, cur->recent_cpu);
+		cur -> recent_cpu = real_add(cur->recent_cpu, cur->nice);
+	}
+
+	if (timer_ticks() % 4 == 0)
+	{
+		// printf("Updating priorities\n");
+		//update all priorities
+		mlfqs_update_priorities();
+	}
+
+
 }

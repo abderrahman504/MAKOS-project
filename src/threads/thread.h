@@ -91,7 +91,7 @@ struct thread
     int priority;                       /* Priority. */
     struct list_elem allelem;           /* List element for all threads list. */
     int nice;                           /* Nice value */
-    real cpu_recent;                    /* Recent CPU value */
+		real recent_cpu;											/* Recent CPU value*/
     int base_priority;                  /* Base priority */
     struct list locks_held;
 
@@ -120,6 +120,7 @@ struct thread
    If true, use multi-level feedback queue scheduler.
    Controlled by kernel command-line option "-o mlfqs". */
 extern bool thread_mlfqs;
+
 
 size_t get_ready_list_size();         /* Returns the size of the ready list (Threads Waiting) */
 
@@ -153,8 +154,11 @@ int thread_get_nice (void);
 void thread_set_nice (int);
 int thread_get_recent_cpu (void);
 int thread_get_load_avg (void);
+void set_load_avg(real x);
+real get_load_avg();
 bool compare_priorities(struct list_elem *l1, struct list_elem *l2, void *aux);
 void search_priority_list(struct thread *cur,int elem);
 void sort_ready_list(void);
+void mlfqs_update_priorities();
 
 #endif /* threads/thread.h */

@@ -38,6 +38,9 @@ static struct thread *initial_thread;
 /* Lock used by allocate_tid(). */
 static struct lock tid_lock;
 
+/* Load average of the system */
+static real load_avg; 
+
 /* Stack frame for kernel_thread(). */
 struct kernel_thread_frame 
   {
@@ -96,16 +99,19 @@ thread_init (void)
   /* Set up a thread structure for the running thread. */
   initial_thread = running_thread ();
   initial_thread->nice = 0;
-  initial_thread->cpu_recent = int_to_real(0);
   init_thread (initial_thread, "main", PRI_DEFAULT);
   initial_thread->status = THREAD_RUNNING;
   initial_thread->tid = allocate_tid ();
   initial_thread->wait_time = 0;
+	load_avg = int_to_real(0);
+	printf("Set load_avg to 0\n");
 }
 
-
+//Get the number of threads in ready_list + 1.
 size_t get_ready_list_size(){
-  return list_size(&ready_list) + 1;
+	if (thread_current() == idle_thread)
+  	return list_size(&ready_list);
+	return list_size(&ready_list) + 1;
 }
 
 /* Starts preemptive thread scheduling by enabling interrupts.
@@ -194,7 +200,6 @@ thread_create (const char *name, int priority,
   /* Initialize thread. */
   init_thread (t, name, priority);
   t->nice = thread_get_nice();
-  t->cpu_recent = thread_current()->cpu_recent;
   tid = t->tid = allocate_tid ();
 
   /* Stack frame for kernel_thread(). */
@@ -229,8 +234,7 @@ thread_block (void)
 {
   ASSERT (!intr_context ());
   ASSERT (intr_get_level () == INTR_OFF);
-
-  thread_current ()->status = THREAD_BLOCKED;
+	thread_current ()->status = THREAD_BLOCKED;
   schedule ();
 }
 
@@ -370,14 +374,12 @@ thread_get_priority (void)
 
 /* Sets the current thread's nice value to NICE. */
 void
-thread_set_nice (int nice UNUSED) 
+thread_set_nice (int nice) 
 {
   // DEMO: STILL NEED TO IMPLEMENT
   enum intr_level previous_level = intr_disable();
   struct thread *t_current = thread_current();
   t_current->nice = nice;
-  real new_priority = PRI_MAX - (t_current->cpu_recent / 4) - (nice * 2); // FIX: USE FIXED POINT OPERATIONS HERE
-  thread_set_priority(new_priority); // FIX: USE INT PART OF REAL
   intr_set_level(previous_level);
 }
 
@@ -392,18 +394,35 @@ thread_get_nice (void)
 int
 thread_get_load_avg (void) 
 {
-  // FIX: RETURN FLOAT_POINT ROUND OF FLOAT_POINT MULTIPLY load_avg BY 100
-  /* Not yet implemented. */
-  return 0;
+	// printf("Get. load_avg = %d\n", load_avg);
+  real x = real_multiply(load_avg, int_to_real(100));
+	// printf("Get. load_avg*100 = %d\n", x);
+  return real_to_int(x);
+}
+
+
+/* Used after calculating load_avg*/
+void set_load_avg(real x)
+{
+	// printf("Set load_avg to %d\n", x);
+	load_avg = x;
+	// printf("Set. load_avg = %d\n", load_avg);
+}
+
+/* Used for calculating load_avg*/
+real get_load_avg()
+{
+	return load_avg;
 }
 
 /* Returns 100 times the current thread's recent_cpu value. */
 int
 thread_get_recent_cpu (void) 
 {
-  // FIX: RETURN FLOAT_POINT ROUND OF FLOAT_POINT MULTIPLY cpu_recent BY 100
-  /* Not yet implemented. */
-  return 0;
+  struct thread* cur = thread_current();
+	real x = real_multiply(cur->recent_cpu, int_to_real(100));
+	// printf("Getting recent_cpu*100: %d\n", real_to_int(x));
+  return real_to_int(x);
 }
 
 /* Idle thread.  Executes when no other thread is ready to run.
@@ -532,9 +551,8 @@ next_thread_to_run (void)
   else {
     struct list_elem* e;
     struct thread* t;
-    e = list_max(&ready_list, compare_priorities, NULL);
+    e = list_pop_front(&ready_list);
     struct thread *next_thread = list_entry(e, struct thread, elem);
-    list_remove(e);
     return next_thread;
     // return list_entry (list_pop_front (&ready_list), struct thread, elem);
   }
@@ -638,7 +656,7 @@ bool compare_priorities(struct list_elem *l1,struct list_elem *l2,void *aux){
     struct thread *t1 = list_entry(l1,struct thread,elem);
     struct thread *t2 = list_entry(l2,struct thread,elem);
     
-    return t1->priority < t2->priority;
+    return t1->priority > t2->priority;
 }
 
 void search_priority_list(struct thread *t,int elem)
@@ -661,3 +679,22 @@ void sort_ready_list(void)
 {
     list_sort(&ready_list, compare_priorities, NULL);
 }
+
+void mlfqs_update_priorities()
+{
+	if (list_size(&all_list) == 0) return;
+	for (struct list_elem* e = list_begin(&all_list); e != list_end(&all_list); e = list_next(e))
+	{
+		struct thread *t = list_entry(e, struct thread, allelem);
+		compute_priority(t);
+	}
+}
+
+
+void compute_priority(struct thread* t)
+{
+	// printf("About to do priority division\n");
+	t->priority = PRI_MAX - real_to_int(real_divide(t->recent_cpu, int_to_real(4))) - t->nice*2;
+	// printf("Passed priority division\n");
+}
+
