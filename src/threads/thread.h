@@ -160,5 +160,6 @@ bool compare_priorities(struct list_elem *l1, struct list_elem *l2, void *aux);
 void search_priority_list(struct thread *cur,int elem);
 void sort_ready_list(void);
 void mlfqs_update_priorities();
+void mlfqs_update_recent_cpu();
 
 #endif /* threads/thread.h */

@@ -701,6 +701,16 @@ void mlfqs_update_priorities()
 	}
 }
 
+void mlfqs_update_recent_cpu()
+{
+	if (list_size(&all_list) == 0) return;
+	for (struct list_elem* e = list_begin(&all_list); e != list_end(&all_list); e = list_next(e))
+	{
+		struct thread *t = list_entry(e, struct thread, allelem);
+		compute_recent_cpu(t);
+	}
+}
+
 
 void compute_priority(struct thread* t)
 {
@@ -709,3 +719,15 @@ void compute_priority(struct thread* t)
 	// printf("Passed priority division\n");
 }
 
+void compute_recent_cpu(struct thread* t)
+{
+	real x,y;
+	x = real_multiply(int_to_real(2), load_avg);
+	y = real_add(x, int_to_real(1));
+	// printf("load_avg = %d\n", real_to_int(load_avg));
+	// printf("About to do x/y. x = %d, y =%d\n", real_to_int(x), real_to_int(y));
+	real coeff = real_divide(x, y);
+	// printf("Passed x/y\n");
+	t -> recent_cpu = real_multiply(coeff, t->recent_cpu);
+	t -> recent_cpu = real_add(t->recent_cpu, t->nice);
+}

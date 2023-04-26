@@ -316,15 +316,7 @@ void mlfqs_recalculate()
 		// printf("int load_avg = %d\n", thread_get_load_avg());
 		
 		//calculating recent_cpu
-		real x,y;
-		x = real_multiply(int_to_real(2), load_avg);
-		y = real_add(x, int_to_real(1));
-		// printf("load_avg = %d\n", real_to_int(load_avg));
-		// printf("About to do x/y. x = %d, y =%d\n", real_to_int(x), real_to_int(y));
-		real coeff = real_divide(x, y);
-		// printf("Passed x/y\n");
-		cur -> recent_cpu = real_multiply(coeff, cur->recent_cpu);
-		cur -> recent_cpu = real_add(cur->recent_cpu, cur->nice);
+		mlfqs_update_recent_cpu();
 	}
 
 	if (timer_ticks() % 4 == 0)
