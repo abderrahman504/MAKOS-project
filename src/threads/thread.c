@@ -104,7 +104,7 @@ thread_init (void)
   initial_thread->tid = allocate_tid ();
   initial_thread->wait_time = 0;
 	load_avg = int_to_real(0);
-	printf("Set load_avg to 0\n");
+	// printf("Set/ load_avg to 0\n");
 }
 
 //Get the number of threads in ready_list + 1.

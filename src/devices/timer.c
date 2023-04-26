@@ -293,7 +293,7 @@ real_time_delay (int64_t num, int32_t denom)
 void mlfqs_recalculate()
 {
 	struct thread* cur = thread_current();
-	cur->recent_cpu = real_add(cur->recent_cpu, 1);
+	cur->recent_cpu = real_add(cur->recent_cpu, int_to_real(1));
 
 	// printf("Recalculations now\n");
 
@@ -312,8 +312,9 @@ void mlfqs_recalculate()
 		// printf("a = %d, b = %d\n", a, b);
 		load_avg = 	real_add(a, b);
 		set_load_avg(load_avg);
-		printf("load_avg = %d\n", load_avg);
-		printf("int load_avg = %d\n", thread_get_load_avg());
+		// printf("load_avg = %d\n", load_avg);
+		// printf("int load_avg = %d\n", thread_get_load_avg());
+		
 		//calculating recent_cpu
 		real x,y;
 		x = real_multiply(int_to_real(2), load_avg);
