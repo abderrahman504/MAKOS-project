@@ -186,9 +186,6 @@ thread_create (const char *name, int priority,
   struct switch_threads_frame *sf;
   tid_t tid;
 
-  if (thread_mlfqs){
-    priority = PRI_DEFAULT; 
-  }
 
   ASSERT (function != NULL);
 
@@ -198,8 +195,11 @@ thread_create (const char *name, int priority,
     return TID_ERROR;
 
   /* Initialize thread. */
+  t->nice = 0;
+  if (thread_mlfqs){
+    priority = PRI_DEFAULT; 
+  }
   init_thread (t, name, priority);
-  t->nice = thread_get_nice();
   tid = t->tid = allocate_tid ();
 
   /* Stack frame for kernel_thread(). */
@@ -389,9 +389,11 @@ thread_set_nice (int nice)
 {
   enum intr_level previous_level = intr_disable();
   struct thread *t_current = thread_current();
+	printf("Changed nice from %d to %d\n",t_current->nice, nice);
   t_current->nice = nice;
 	int old_prio = t_current->priority;
 	compute_priority(t_current);
+	printf("nice = %d, cpu = %d, Priority = %d\n",t_current->nice, t_current->recent_cpu, t_current->priority);
   intr_set_level(previous_level);
 	if (old_prio > t_current->priority)
 	{
@@ -714,14 +716,16 @@ void mlfqs_update_recent_cpu()
 		struct thread *t = list_entry(e, struct thread, allelem);
 		compute_recent_cpu(t);
 	}
+	idle_thread->recent_cpu = 0;
 }
 
 
 void compute_priority(struct thread* t)
 {
-	// printf("About to do priority division\n");
-	t->priority = PRI_MAX - real_to_int(real_divide(t->recent_cpu, int_to_real(4))) - t->nice*2;
-	// printf("Passed priority division\n");
+	int p = PRI_MAX - real_to_int(real_divide(t->recent_cpu, int_to_real(4))) - t->nice*2;
+	p = PRI_MAX > p ? p : PRI_MAX;
+	p = PRI_MIN < p ? p : PRI_MIN;
+	t->priority = p;
 }
 
 void compute_recent_cpu(struct thread* t)
@@ -729,10 +733,7 @@ void compute_recent_cpu(struct thread* t)
 	real x,y;
 	x = real_multiply(int_to_real(2), load_avg);
 	y = real_add(x, int_to_real(1));
-	// printf("load_avg = %d\n", real_to_int(load_avg));
-	// printf("About to do x/y. x = %d, y =%d\n", real_to_int(x), real_to_int(y));
 	real coeff = real_divide(x, y);
-	// printf("Passed x/y\n");
 	t -> recent_cpu = real_multiply(coeff, t->recent_cpu);
-	t -> recent_cpu = real_add(t->recent_cpu, t->nice);
+	t -> recent_cpu = real_add(t->recent_cpu, int_to_real(t->nice));
 }
