@@ -221,10 +221,14 @@ lock_acquire (struct lock *lock)
               }
               temp = current_lock->holder;
           }
-          if(!lock->is_donated){
-              lock->holder->number_of_donations +=1;
+          if(thread_mlfqs){
+
+          }else{
+            if(!lock->is_donated){
+                lock->holder->number_of_donations +=1;
+            }
+            lock->is_donated=true;
           }
-          lock->is_donated=true;
           sort_ready_list();
       }
   }
@@ -270,16 +274,20 @@ lock_release (struct lock *lock)
   /*------------------------Updated---------------------*/
   struct semaphore *sema = &lock->semaphore;
   list_sort(&sema->waiters,compare_priorities,0);
-  if(lock->is_donated){
-      thread_current()->number_of_donations -=1;
-      int elem = list_entry(list_front(&sema->waiters),struct thread,elem)->priority;
-      search_priority_list(thread_current(),elem);
-      thread_current()->priority = thread_current()->priorities[(thread_current()->priorities_size)-1];
-      lock->is_donated=false;
-  }
-  if(thread_current()->number_of_donations==0){
-      thread_current()->priorities_size=1;
-      thread_current()->priority = thread_current()->priorities[0];
+  if(thread_mlfqs){
+    
+  }else{
+    if(lock->is_donated){
+        thread_current()->number_of_donations -=1;
+        int elem = list_entry(list_front(&sema->waiters),struct thread,elem)->priority;
+        search_priority_list(thread_current(),elem);
+        thread_current()->priority = thread_current()->priorities[(thread_current()->priorities_size)-1];
+        lock->is_donated=false;
+    }
+    if(thread_current()->number_of_donations==0){
+        thread_current()->priorities_size=1;
+        thread_current()->priority = thread_current()->priorities[0];
+    }
   }
   /*----------------------------------------------------*/
   lock->holder = NULL;

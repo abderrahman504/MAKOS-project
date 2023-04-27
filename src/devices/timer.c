@@ -199,7 +199,6 @@ timer_interrupt (struct intr_frame *args UNUSED)
   while(!list_empty(&sleep_list)){
     struct thread* t = list_entry(list_front(&sleep_list), struct thread, elem);
     if(t->wait_time <= ticks){
-      t->wait_time = 0;
       list_pop_front(&sleep_list);
       thread_unblock(t);
       flag = 1;
