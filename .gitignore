@@ -12,3 +12,4 @@
 !src/threads/fixed-point.c
 !src/devices/timer.c
 !src/devices/timer.h
+!src/Makefile.build
