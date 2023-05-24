@@ -4,6 +4,7 @@
 !src/
 !src/devices/
 !src/threads/
+!src/userprog/
 !src/threads/synch.c
 !src/threads/synch.h
 !src/threads/thread.c
@@ -12,3 +13,10 @@
 !src/threads/fixed-point.c
 !src/devices/timer.c
 !src/devices/timer.h
+!src/Makefile.build
+!src/userprog/process.c
+!src/userprog/process.h
+!src/userprog/syscall.c
+!src/userprog/syscall.h
+!src/userprog/exception.c
+!src/userprog/exception.h
