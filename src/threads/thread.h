@@ -110,6 +110,8 @@ struct thread
     struct lock *lock_waiting;           /* The lock which the thread blocked for */
     /*------------------------phase 2----------------------*/
     struct list open_file_list;
+		struct list children;
+		struct list_elem child_elem;
     struct thread* parent_thread;
     int fd_last;
     int child_status;
