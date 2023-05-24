@@ -25,6 +25,12 @@ typedef int tid_t;
 #define PRI_DEFAULT 31                  /* Default priority. */
 #define PRI_MAX 63                      /* Highest priority. */
 
+struct open_file{
+    int fd;
+    struct file* ptr;
+    struct list_elem elem;
+};
+
 /* A kernel thread or user process.
 
    Each thread structure is stored in its own 4 kB page.  The
@@ -102,6 +108,11 @@ struct thread
     int priorities_size;                /* Size of donated priority list */
     int number_of_donations;             /* Number of locks that thread donated for */
     struct lock *lock_waiting;           /* The lock which the thread blocked for */
+    /*------------------------phase 2----------------------*/
+    struct list open_file_list;
+    struct thread* parent_thread;
+    int fd_last;
+    int child_status;
 
 
     /* Shared between thread.c and synch.c. */

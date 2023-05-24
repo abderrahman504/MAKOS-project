@@ -220,6 +220,7 @@ thread_create (const char *name, int priority,
 
   /* Add to run queue. */
   thread_unblock (t);
+    if(!intr_context())
   thread_yield();
 
   return tid;
@@ -372,6 +373,7 @@ thread_set_priority (int new_priority)
     if(thread_current()->priorities_size==1)
     {
         thread_current ()->priority = new_priority;
+        if(!intr_context())
         thread_yield();
     }
     intr_set_level(previous_level);
@@ -398,6 +400,7 @@ thread_set_nice (int nice)
   intr_set_level(previous_level);
 	if (old_prio > t_current->priority)
 	{
+        if(!intr_context())
 		thread_yield();
 	}
 }
@@ -539,6 +542,14 @@ init_thread (struct thread *t, const char *name, int priority)
   list_init(&t->locks_held);
   t->magic = THREAD_MAGIC;
 
+  /*------------------phase 2-----------------------*/
+  list_init(&t->open_file_list);
+  t->parent_thread = running_thread();
+  t->fd_last = 2;
+  t->child_status = -2;
+
+
+  /*------------------------------------------------*/
   old_level = intr_disable ();
   list_push_back (&all_list, &t->allelem);
   intr_set_level (old_level);
