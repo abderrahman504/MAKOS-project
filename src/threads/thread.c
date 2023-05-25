@@ -203,8 +203,8 @@ thread_create (const char *name, int priority,
   init_thread (t, name, priority);
   tid = t->tid = allocate_tid ();
 	//Phase 2 initialization
-	t->parent_thread = thread_current();
-	list_push_front(&(t->parent_thread->children), &(t->child_elem));
+//	t->parent_thread = thread_current();
+//	list_push_front(&(t->parent_thread->children), &(t->child_elem));
 
 
   /* Stack frame for kernel_thread(). */
