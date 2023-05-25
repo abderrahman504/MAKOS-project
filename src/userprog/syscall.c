@@ -7,6 +7,10 @@
 #include "threads/synch.h"
 
 static void syscall_handler (struct intr_frame *);
+int get_int(int** esp);
+char* get_char_ptr(char*** esp);
+void* get_void_ptr(void* pt);
+
 
 static struct lock files_sys_lock;
 
@@ -385,9 +389,6 @@ void sys_close(int fd){
 }
 
 
-
-
-
 struct open_file* get_file(int fd){
     struct thread* t = thread_current();
     struct file* my_file = NULL;
@@ -401,4 +402,17 @@ struct open_file* get_file(int fd){
         }
     }
     return NULL;
+}
+
+int get_int(int** esp)
+{
+	return *((int*)esp + 1);
+}
+char* get_char_ptr(char*** esp)
+{
+
+}
+void* get_void_ptr(void* pt)
+{
+
 }
