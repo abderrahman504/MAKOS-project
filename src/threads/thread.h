@@ -110,11 +110,15 @@ struct thread
     struct lock *lock_waiting;           /* The lock which the thread blocked for */
     /*------------------------phase 2----------------------*/
     struct list open_file_list;
-		struct list children;
-		struct list_elem child_elem;
+    struct list child_processe_list;
     struct thread* parent_thread;
-    int fd_last;
+    bool is_child_creation_success;
     int child_status;
+    struct file* executable_file;
+    struct semaphore wait_child_sema;
+    struct semaphore parent_child_sync_sema;
+    int fd_last;
+    struct list_elem child_elem;
 
 
     /* Shared between thread.c and synch.c. */
