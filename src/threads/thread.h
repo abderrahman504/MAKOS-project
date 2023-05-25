@@ -4,18 +4,17 @@
 #include <debug.h>
 #include <list.h>
 #include <stdint.h>
-#include "fixed-point.h"
 #include "threads/synch.h"
 #include "filesys/file.h"
 
 /* States in a thread's life cycle. */
 enum thread_status
-  {
+{
     THREAD_RUNNING,     /* Running thread. */
     THREAD_READY,       /* Not running but ready to run. */
     THREAD_BLOCKED,     /* Waiting for an event to trigger. */
     THREAD_DYING        /* About to be destroyed. */
-  };
+};
 
 /* Thread identifier type.
    You can redefine this to whatever type you like. */
@@ -90,7 +89,7 @@ struct open_file{
    ready state is on the run queue, whereas only a thread in the
    blocked state is on a semaphore wait list. */
 struct thread
-  {
+{
     /* Owned by thread.c. */
     tid_t tid;                          /* Thread identifier. */
     enum thread_status status;          /* Thread state. */
@@ -98,22 +97,15 @@ struct thread
     uint8_t *stack;                     /* Saved stack pointer. */
     int priority;                       /* Priority. */
     struct list_elem allelem;           /* List element for all threads list. */
-    int nice;                           /* Nice value */
-		real recent_cpu;											/* Recent CPU value*/
-    int base_priority;                  /* Base priority */
-    struct list locks_held;
 
-    /*------------------------Updated---------------------*/
-    int wait_time;                      /* Number of ticks to wake up.*/
-    /*------------------------Updated_For_Donations---------------------*/
-    int priorities[20];                  /* List for all donated priorities */
-    int priorities_size;                /* Size of donated priority list */
-    int number_of_donations;             /* Number of locks that thread donated for */
-    struct lock *lock_waiting;           /* The lock which the thread blocked for */
-    /*------------------------phase 2----------------------*/
-    struct list open_file_list;
-    struct list child_processe_list;
-    struct thread* parent_thread;
+    /* Shared between thread.c and synch.c. */
+    struct list_elem elem;              /* List element. */
+
+    /* Start pintos part 2. */
+
+    struct list open_file_list;          // list of opened files
+    struct list child_processe_list;	 // list of child of the process
+    struct thread* parent_thread;        // parent of the process
     bool is_child_creation_success;
     int child_status;
     struct file* executable_file;
@@ -122,26 +114,21 @@ struct thread
     int fd_last;
     struct list_elem child_elem;
 
+    /* End pintos part 2. */
 
-    /* Shared between thread.c and synch.c. */
-    struct list_elem elem;              /* List element. */
-
-// #ifdef USERPROG
+#ifdef USERPROG
     /* Owned by userprog/process.c. */
     uint32_t *pagedir;                  /* Page directory. */
-// #endif
+#endif
 
     /* Owned by thread.c. */
     unsigned magic;                     /* Detects stack overflow. */
-  };
+};
 
 /* If false (default), use round-robin scheduler.
    If true, use multi-level feedback queue scheduler.
    Controlled by kernel command-line option "-o mlfqs". */
 extern bool thread_mlfqs;
-
-
-size_t get_ready_list_size();         /* Returns the size of the ready list (Threads Waiting) */
 
 void thread_init (void);
 void thread_start (void);
@@ -173,12 +160,5 @@ int thread_get_nice (void);
 void thread_set_nice (int);
 int thread_get_recent_cpu (void);
 int thread_get_load_avg (void);
-void set_load_avg(real x);
-real get_load_avg();
-bool compare_priorities(struct list_elem *l1, struct list_elem *l2, void *aux);
-void search_priority_list(struct thread *cur,int elem);
-void sort_ready_list(void);
-void mlfqs_update_priorities();
-void mlfqs_update_recent_cpu();
 
 #endif /* threads/thread.h */
